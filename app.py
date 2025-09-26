@@ -7,7 +7,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 
 app = Flask(__name__)
 
-DATA_FOLDER = "data_pdfs"
+DATA_FOLDER = "data"
 OUTPUT_FOLDER = "outputs"
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
