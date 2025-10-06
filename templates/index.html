@@ -1,29 +1,117 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Cotizador PDF</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cotizador — Inicio</title>
+  <style>
+    :root{--accent:#0b74de;--muted:#666}
+    body{font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:#fafafa; color:#222}
+    .container{max-width:980px;margin:24px auto;padding:18px}
+    header{display:flex;gap:12px;align-items:center;justify-content:space-between}
+    .header-imgs{display:flex;gap:12px;align-items:center}
+    .header-imgs img{height:78px;object-fit:cover;border-radius:8px;border:1px solid #e6e6e6}
+    nav.menus{margin-top:18px;display:flex;gap:12px;flex-wrap:wrap}
+    .menu-select{padding:10px 12px;border-radius:8px;border:1px solid #ddd;background:#fff;min-width:180px}
+    .card{background:#fff;border:1px solid #e6e6e6;border-radius:10px;padding:16px;margin-top:18px}
+    textarea{width:100%;min-height:160px;border-radius:8px;border:1px solid #ddd;padding:12px;font-family:inherit}
+    .controls{display:flex;gap:12px;align-items:center;margin-top:12px}
+    .btn{background:var(--accent);color:#fff;padding:10px 14px;border-radius:8px;border:none;cursor:pointer}
+    .btn.secondary{background:#fff;color:var(--accent);border:1px solid #cce4ff}
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+    @media (max-width:640px){header{flex-direction:column;align-items:flex-start}.header-imgs img{height:60px}}
+  </style>
 </head>
-<body class="p-6 bg-gray-100">
-  <div class="max-w-xl mx-auto bg-white shadow-lg p-6 rounded">
-    <h1 class="text-2xl font-bold mb-4">Generar Cotización</h1>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-imgs">
+  <!-- Asegúrate de poner las imágenes en static/images/ y ajustar los nombres -->
+  <img src="{{ url_for('static', filename='images/Imagen1.jpg') }}" alt="Logo izquierda">
+  <img src="{{ url_for('static', filename='images/Imagen2.png') }}" alt="Logo derecha">
+      </div>
+      <div>
+        <strong>Proyecto Cotizador</strong>
+        <div style="font-size:13px;color:var(--muted)">Servidor: {{ request.host }}</div>
+      </div>
+    </header>
 
-    <form action="/generar" method="post">
-      <label class="block mb-2">Cliente:</label>
-      <input type="text" name="cliente" class="w-full p-2 border rounded mb-4" required>
-
-      <label class="block mb-2">Selecciona un PDF de base:</label>
-      <select name="producto" class="w-full p-2 border rounded mb-4">
-        {% for pdf in pdfs %}
-        <option>{{ pdf }}</option>
-        {% endfor %}
+    <nav class="menus" aria-label="Menús principales">
+      <select class="menu-select" id="menu1" onchange="handleMenu(this)">
+        <option value="">Productos</option>
+        <option value="/productos/iluminacion">Iluminación</option>
+        <option value="/productos/exteriores">Exteriores</option>
+        <option value="/productos/interiores">Interiores</option>
       </select>
 
-      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">
-        Generar PDF
-      </button>
-    </form>
+      <select class="menu-select" id="menu2" onchange="handleMenu(this)">
+        <option value="">Documentos</option>
+        <option value="/docs/manual">Manual</option>
+        <option value="/docs/fichas">Fichas técnicas</option>
+        <option value="/docs/políticas">Políticas</option>
+      </select>
+
+      <select class="menu-select" id="menu3" onchange="handleMenu(this)">
+        <option value="">Acciones</option>
+        <option value="/acciones/nueva">Nueva cotización</option>
+        <option value="/acciones/historial">Historial</option>
+        <option value="/acciones/config">Configuración</option>
+      </select>
+    </nav>
+
+    <section class="card" aria-labelledby="editorLabel">
+      <h3 id="editorLabel">Texto para descargar</h3>
+      <p style="color:var(--muted);margin-top:6px">Escribe o pega el contenido que deseas descargar como archivo. Luego pulsa <strong>Descargar</strong>.</p>
+      <textarea id="downloadText" placeholder="Escribe aquí el texto...">{{ default_text or "" }}</textarea>
+
+      <div class="controls">
+        <input type="text" id="filename" placeholder="nombre_archivo.txt" style="padding:10px;border-radius:8px;border:1px solid #ddd;min-width:220px">
+        <button class="btn" id="downloadBtn">Descargar</button>
+        <button class="btn secondary" id="clearBtn" type="button">Limpiar</button>
+      </div>
+    </section>
+
+    <footer>
+      Consejo: si quieres que los menús abran páginas en la misma aplicación, ajusta las rutas (<code>/productos/...</code>) en los <em>option</em> o maneja con JavaScript.
+    </footer>
   </div>
+
+  <script>
+    function handleMenu(sel){
+      const url = sel.value;
+      if(!url) return; // opción por defecto
+      // Si la ruta es interna, navegamos; si es externa, abrir en nueva pestaña
+      if(url.startsWith('http') || url.startsWith('/')){
+        window.location.href = url;
+      } else {
+        window.open(url, '_blank');
+      }
+      // restaurar al primer elemento
+      sel.selectedIndex = 0;
+    }
+
+    document.getElementById('downloadBtn').addEventListener('click', function(){
+      const text = document.getElementById('downloadText').value;
+      let filename = document.getElementById('filename').value.trim();
+      if(!filename) filename = 'texto.txt';
+      // asegurarse que tenga extensión
+      if(!filename.includes('.')) filename += '.txt';
+
+      const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', function(){
+      document.getElementById('downloadText').value = '';
+      document.getElementById('filename').value = '';
+    });
+  </script>
 </body>
 </html>
